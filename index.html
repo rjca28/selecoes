@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FPN — Análise de Seleções Nacionais</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --navy: #042C53;
+  --blue: #185FA5;
+  --mid: #378ADD;
+  --light: #B5D4F4;
+  --pale: #E6F1FB;
+  --green: #3B6D11;
+  --green-l: #EAF3DE;
+  --amber: #854F0B;
+  --amber-l: #FAEEDA;
+  --red: #A32D2D;
+  --red-l: #FCEBEB;
+  --bg: #f5f7fa;
+  --surface: #ffffff;
+  --border: rgba(4,44,83,.1);
+  --text: #0d1b2a;
+  --muted: #5a6d80;
+  --faint: #9aabb8;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+.header {
+  background: var(--navy);
+  padding: 2rem 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.header-logo {
+  width: 44px;
+  height: 44px;
+  background: var(--blue);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.header-logo svg { width: 26px; height: 26px; fill: white; }
+.header-title { color: white; font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+.header-sub { color: var(--light); font-size: 12px; font-weight: 400; margin-top: 1px; }
+.header-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.season-badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+  letter-spacing: .02em;
+}
+.sb-a { background: var(--mid); color: white; }
+.sb-vs { color: var(--light); font-size: 11px; padding: 0 4px; }
+.sb-b { background: rgba(255,255,255,.15); color: white; border: 1px solid rgba(255,255,255,.3); }
+
+/* ── Main layout ── */
+.main { max-width: 1080px; margin: 0 auto; padding: 2rem 1.5rem 3rem; }
+
+/* ── Section ── */
+.section-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: .75rem;
+  margin-top: 2rem;
+}
+.section-label:first-child { margin-top: 0; }
+
+/* ── KPI grid ── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: .75rem;
+}
+.kpi-grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+.kpi {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  position: relative;
+  overflow: hidden;
+}
+.kpi::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--mid);
+}
+.kpi-label {
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 10px;
+  line-height: 1.3;
+}
+.kpi-values {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.kpi-val {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -.02em;
+  font-family: 'DM Mono', monospace;
+}
+.kpi-val.a { color: var(--mid); }
+.kpi-val.b { color: var(--navy); }
+.kpi-sep { font-size: 14px; color: var(--faint); margin: 0 6px; }
+.kpi-delta {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  display: inline-block;
+}
+.delta-up { background: var(--green-l); color: var(--green); }
+.delta-down { background: var(--red-l); color: var(--red); }
+.delta-flat { background: var(--pale); color: var(--blue); }
+
+/* ── Charts grid ── */
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: .75rem;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+}
+.card-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 1rem;
+}
+.legend-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.leg-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.leg-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.chart-wrap {
+  position: relative;
+  width: 100%;
+}
+
+/* ── Top athletes ── */
+.top-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: .75rem;
+}
+.athlete-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+}
+.athlete-row:last-child { border-bottom: none; }
+.ath-rank {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--faint);
+  width: 14px;
+  flex-shrink: 0;
+  text-align: right;
+  font-family: 'DM Mono', monospace;
+}
+.ath-info { flex: 1; min-width: 0; }
+.ath-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ath-escalao {
+  font-size: 10px;
+  color: var(--muted);
+}
+.ath-bar-wrap { width: 72px; flex-shrink: 0; }
+.ath-bar-bg {
+  height: 5px;
+  background: var(--pale);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 3px;
+}
+.ath-bar { height: 5px; border-radius: 3px; }
+.ath-count {
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'DM Mono', monospace;
+  text-align: right;
+}
+
+/* ── Activity pills ── */
+.pills-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: .75rem;
+}
+.pills-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: .75rem;
+}
+.pill {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+.pill-estagio {
+  background: var(--pale);
+  color: var(--blue);
+  border-color: var(--light);
+}
+.pill-comp {
+  background: var(--green-l);
+  color: var(--green);
+  border-color: #C0DD97;
+}
+
+/* ── Two-col ── */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: .75rem;
+}
+
+/* ── Season divider within card ── */
+.season-divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: .75rem;
+}
+.season-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.season-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+/* ── Footer ── */
+.footer {
+  text-align: center;
+  padding: 1.5rem;
+  font-size: 11px;
+  color: var(--faint);
+  border-top: 1px solid var(--border);
+  margin-top: 1rem;
+}
+.footer strong { color: var(--muted); }
+
+/* ── Responsive ── */
+@media (max-width: 720px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .kpi-grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .charts-grid, .top-grid, .two-col { grid-template-columns: 1fr; }
+  .header { flex-direction: column; align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-brand">
+    <div class="header-logo">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2C7.03 2 3 6.03 3 11c0 3.1 1.53 5.84 3.88 7.54L12 22l5.12-3.46A8.96 8.96 0 0 0 21 11c0-4.97-4.03-9-9-9zm0 14a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/>
+      </svg>
+    </div>
+    <div>
+      <div class="header-title">Federação Portuguesa de Natação</div>
+      <div class="header-sub">Análise Comparativa — Seleções Nacionais de Natação</div>
+    </div>
+  </div>
+  <div class="header-meta">
+    <span class="season-badge sb-a">2024 / 2025</span>
+    <span class="sb-vs">vs</span>
+    <span class="season-badge sb-b">2025 / 2026</span>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- KPIs principais -->
+  <div class="section-label">indicadores globais</div>
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="kpi-label">Nadadores selecionados</div>
+      <div class="kpi-values">
+        <span class="kpi-val a">72</span>
+        <span class="kpi-sep">→</span>
+        <span class="kpi-val b">96</span>
+      </div>
+      <span class="kpi-delta delta-up">+33%</span>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Presenças em seleções</div>
+      <div class="kpi-values">
+        <span class="kpi-val a">249</span>
+        <span class="kpi-sep">→</span>
+        <span class="kpi-val b">273</span>
+      </div>
+      <span class="kpi-delta delta-up">+10%</span>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Treinadores e staff</div>
+      <div class="kpi-values">
+        <span class="kpi-val a">36</span>
+        <span class="kpi-sep">→</span>
+        <span class="kpi-val b">34</span>
+      </div>
+      <span class="kpi-delta delta-down">−6%</span>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">N.º de atividades</div>
+      <div class="kpi-values">
+        <span class="kpi-val a">28</span>
+        <span class="kpi-sep">→</span>
+        <span class="kpi-val b">34</span>
+      </div>
+      <span class="kpi-delta delta-up">+21%</span>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Clubes representados</div>
+      <div class="kpi-values">
+        <span class="kpi-val a">33</span>
+        <span class="kpi-sep">→</span>
+        <span class="kpi-val b">39</span>
+      </div>
+      <span class="kpi-delta delta-up">+18%</span>
+    </div>
+  </div>
+
+  <div class="kpi-grid kpi-grid-4">
+    <div class="kpi">
+      <div class="kpi-label">Dias de convocatória</div>
+      <div class="kpi-values">
+        <span class="kpi-val a">202</span>
+        <span class="kpi-sep">→</span>
+        <span class="kpi-val b">179</span>
+      </div>
+      <span class="kpi-delta delta-down">−11%</span>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Dias de competição</div>
+      <div class="kpi-values">
+        <span class="kpi-val a">157</span>
+        <span class="kpi-sep">→</span>
+        <span class="kpi-val b">152</span>
+      </div>
+      <span class="kpi-delta delta-down">−3%</span>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Presenças de staff</div>
+      <div class="kpi-values">
+        <span class="kpi-val a">120</span>
+        <span class="kpi-sep">→</span>
+        <span class="kpi-val b">97</span>
+      </div>
+      <span class="kpi-delta delta-down">−19%</span>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Média pres. / nadador</div>
+      <div class="kpi-values">
+        <span class="kpi-val a">3.5</span>
+        <span class="kpi-sep">→</span>
+        <span class="kpi-val b">2.8</span>
+      </div>
+      <span class="kpi-delta delta-down">−20%</span>
+    </div>
+  </div>
+
+  <!-- Gráficos -->
+  <div class="section-label">distribuição e perfil</div>
+  <div class="charts-grid">
+
+    <div class="card">
+      <div class="card-title">Nadadores por escalão</div>
+      <div class="legend-row">
+        <span class="leg-item"><span class="leg-dot" style="background:#378ADD"></span>2024/25</span>
+        <span class="leg-item"><span class="leg-dot" style="background:#042C53"></span>2025/26</span>
+      </div>
+      <div class="chart-wrap" style="height:200px">
+        <canvas id="chartEscalao" role="img" aria-label="Distribuição de nadadores por escalão nas duas épocas. 24/25: Júnior 26, Sénior 23, Juvenil 23. 25/26: Infantil 30, Juvenil 25, Sénior 25, Júnior 16.">Escalão 24/25 → Júnior 26, Sénior 23, Juvenil 23. 25/26 → Infantil 30, Juvenil 25, Sénior 25, Júnior 16.</canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Estágios vs competições</div>
+      <div class="legend-row">
+        <span class="leg-item"><span class="leg-dot" style="background:#185FA5"></span>Estágios</span>
+        <span class="leg-item"><span class="leg-dot" style="background:#3B6D11"></span>Competições</span>
+      </div>
+      <div class="chart-wrap" style="height:200px">
+        <canvas id="chartTipo" role="img" aria-label="Número de estágios e competições por época. 24/25: 11 estágios, 17 competições. 25/26: 19 estágios, 15 competições.">24/25: 11 estágios, 17 competições. 25/26: 19 estágios, 15 competições.</canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Dias de atividade</div>
+      <div class="legend-row">
+        <span class="leg-item"><span class="leg-dot" style="background:#378ADD"></span>Convocatória</span>
+        <span class="leg-item"><span class="leg-dot" style="background:#B5D4F4"></span>Competição</span>
+      </div>
+      <div class="chart-wrap" style="height:200px">
+        <canvas id="chartDias" role="img" aria-label="Dias de convocatória e competição por época. 24/25: 202 e 157 dias. 25/26: 179 e 152 dias.">24/25: 202 convo, 157 comp. 25/26: 179 convo, 152 comp.</canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Nadadores únicos vs presenças</div>
+      <div class="legend-row">
+        <span class="leg-item"><span class="leg-dot" style="background:#5DCAA5"></span>Nadadores únicos</span>
+        <span class="leg-item"><span class="leg-dot" style="background:#0F6E56"></span>Total presenças</span>
+      </div>
+      <div class="chart-wrap" style="height:200px">
+        <canvas id="chartPres" role="img" aria-label="Comparação entre nadadores únicos e total de presenças por época. 24/25: 72 nadadores, 249 presenças. 25/26: 96 nadadores, 273 presenças.">24/25: 72 nadadores, 249 presenças. 25/26: 96 nadadores, 273 presenças.</canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Top atletas -->
+  <div class="section-label">atletas com mais presenças</div>
+  <div class="top-grid">
+
+    <div class="card">
+      <div class="season-divider">
+        <span class="season-dot" style="background:#378ADD"></span>
+        <span class="season-name">Época 2024 / 2025</span>
+      </div>
+      <div id="top2425"></div>
+    </div>
+
+    <div class="card">
+      <div class="season-divider">
+        <span class="season-dot" style="background:#042C53"></span>
+        <span class="season-name">Época 2025 / 2026</span>
+      </div>
+      <div id="top2526"></div>
+    </div>
+
+  </div>
+
+  <!-- Atividades -->
+  <div class="section-label">atividades realizadas</div>
+  <div class="two-col">
+
+    <div class="pills-card">
+      <div class="season-divider">
+        <span class="season-dot" style="background:#378ADD"></span>
+        <span class="season-name">2024 / 2025 — 28 atividades</span>
+      </div>
+      <div style="display:flex;gap:12px;font-size:11px;color:var(--muted);margin-bottom:.5rem">
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:#185FA5;display:inline-block"></span>11 estágios</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:#3B6D11;display:inline-block"></span>17 competições</span>
+      </div>
+      <div class="pills-row" id="pills2425"></div>
+    </div>
+
+    <div class="pills-card">
+      <div class="season-divider">
+        <span class="season-dot" style="background:#042C53"></span>
+        <span class="season-name">2025 / 2026 — 34 atividades</span>
+      </div>
+      <div style="display:flex;gap:12px;font-size:11px;color:var(--muted);margin-bottom:.5rem">
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:#185FA5;display:inline-block"></span>19 estágios</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:#3B6D11;display:inline-block"></span>15 competições</span>
+      </div>
+      <div class="pills-row" id="pills2526"></div>
+    </div>
+
+  </div>
+
+</main>
+
+<footer class="footer">
+  <strong>Federação Portuguesa de Natação</strong> · Análise de Seleções Nacionais · Gerado em maio 2026
+</footer>
+
+<script>
+// ─── Chart defaults ───────────────────────────────────────────────
+Chart.defaults.font.family = "'DM Sans', sans-serif";
+Chart.defaults.font.size = 11;
+Chart.defaults.color = '#5a6d80';
+
+const gridColor = 'rgba(4,44,83,.06)';
+
+// ─── Escalão chart ────────────────────────────────────────────────
+new Chart(document.getElementById('chartEscalao'), {
+  type: 'bar',
+  data: {
+    labels: ['Infantil', 'Juvenil', 'Júnior', 'Sénior'],
+    datasets: [
+      { label: '2024/25', data: [0, 23, 26, 23], backgroundColor: '#378ADD', borderRadius: 4, borderSkipped: false },
+      { label: '2025/26', data: [30, 25, 16, 25], backgroundColor: '#042C53', borderRadius: 4, borderSkipped: false }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false }, border: { display: false } },
+      y: { grid: { color: gridColor }, border: { display: false }, ticks: { stepSize: 5 } }
+    }
+  }
+});
+
+// ─── Tipo chart ───────────────────────────────────────────────────
+new Chart(document.getElementById('chartTipo'), {
+  type: 'bar',
+  data: {
+    labels: ['2024/2025', '2025/2026'],
+    datasets: [
+      { label: 'Estágios', data: [11, 19], backgroundColor: '#185FA5', borderRadius: 4, borderSkipped: false },
+      { label: 'Competições', data: [17, 15], backgroundColor: '#639922', borderRadius: 4, borderSkipped: false }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false }, border: { display: false } },
+      y: { grid: { color: gridColor }, border: { display: false }, ticks: { stepSize: 5 } }
+    }
+  }
+});
+
+// ─── Dias chart ───────────────────────────────────────────────────
+new Chart(document.getElementById('chartDias'), {
+  type: 'bar',
+  data: {
+    labels: ['2024/2025', '2025/2026'],
+    datasets: [
+      { label: 'Convocatória', data: [202, 179], backgroundColor: '#378ADD', borderRadius: 4, borderSkipped: false },
+      { label: 'Competição', data: [157, 152], backgroundColor: '#B5D4F4', borderRadius: 4, borderSkipped: false }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false }, border: { display: false } },
+      y: { grid: { color: gridColor }, border: { display: false }, min: 0, max: 240, ticks: { stepSize: 50 } }
+    }
+  }
+});
+
+// ─── Presenças chart ──────────────────────────────────────────────
+new Chart(document.getElementById('chartPres'), {
+  type: 'bar',
+  data: {
+    labels: ['2024/2025', '2025/2026'],
+    datasets: [
+      { label: 'Nadadores únicos', data: [72, 96], backgroundColor: '#5DCAA5', borderRadius: 4, borderSkipped: false },
+      { label: 'Total presenças', data: [249, 273], backgroundColor: '#0F6E56', borderRadius: 4, borderSkipped: false }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false }, border: { display: false } },
+      y: { grid: { color: gridColor }, border: { display: false } }
+    }
+  }
+});
+
+// ─── Top atletas ──────────────────────────────────────────────────
+const top2425 = [
+  { nome: 'Francisca S. Martins', escalao: 'Sénior', clube: 'FOCA', pres: 11 },
+  { nome: 'Camila R. Rebelo', escalao: 'Sénior', clube: 'ALN', pres: 9 },
+  { nome: 'Mariana P. Cunha', escalao: 'Sénior', clube: 'CNCE', pres: 8 },
+  { nome: 'Diogo M. Ribeiro', escalao: 'Sénior', clube: 'SLB', pres: 7 },
+  { nome: 'João N. Costa', escalao: 'Sénior', clube: 'VSC', pres: 7 },
+  { nome: 'Zara A. Rojas', escalao: 'Júnior', clube: 'INDMAD', pres: 6 },
+  { nome: 'Kevins Apseniece', escalao: 'Sénior', clube: 'FCP', pres: 5 },
+  { nome: 'Rafaela G. Azevedo', escalao: 'Sénior', clube: 'SAD', pres: 6 },
+];
+const top2526 = [
+  { nome: 'Mariana P. Cunha', escalao: 'Sénior', clube: 'CE', pres: 9 },
+  { nome: 'Francisca S. Martins', escalao: 'Sénior', clube: 'FOCA', pres: 8 },
+  { nome: 'Vasco A. Morgado', escalao: 'Sénior', clube: 'SAD', pres: 7 },
+  { nome: 'Diogo M. Ribeiro', escalao: 'Sénior', clube: 'SLB', pres: 7 },
+  { nome: 'Rodolfo J. Alecrim', escalao: 'Juvenil', clube: 'CNL', pres: 6 },
+  { nome: 'Rodrigo C. Borges', escalao: 'Sénior', clube: 'FCP', pres: 6 },
+  { nome: 'Carolina R. Taveira', escalao: 'Juvenil', clube: 'CGA', pres: 6 },
+  { nome: 'Samie Elias (staff)', escalao: 'Treinador', clube: 'FPN', pres: 6 },
+];
+
+function renderAthletes(arr, id, color) {
+  const max = arr[0].pres;
+  document.getElementById(id).innerHTML = arr.map((a, i) => `
+    <div class="athlete-row">
+      <span class="ath-rank">${i + 1}</span>
+      <div class="ath-info">
+        <div class="ath-name">${a.nome}</div>
+        <div class="ath-escalao">${a.escalao} · ${a.clube}</div>
+      </div>
+      <div class="ath-bar-wrap">
+        <div class="ath-bar-bg">
+          <div class="ath-bar" style="width:${Math.round(a.pres / max * 100)}%;background:${color}"></div>
+        </div>
+        <div class="ath-count" style="color:${color}">${a.pres}×</div>
+      </div>
+    </div>`).join('');
+}
+
+renderAthletes(top2425, 'top2425', '#378ADD');
+renderAthletes(top2526, 'top2526', '#042C53');
+
+// ─── Activity pills ───────────────────────────────────────────────
+const acts2425 = [
+  { name: 'Meeting Genebra', tipo: 'comp' },
+  { name: 'Estágio Altitude', tipo: 'estagio' },
+  { name: 'Estágio Jamor (×2)', tipo: 'estagio' },
+  { name: 'Open Madeira', tipo: 'comp' },
+  { name: 'Estágio Juvenis', tipo: 'estagio' },
+  { name: 'Estágio Júnior', tipo: 'estagio' },
+  { name: 'Open Espanha', tipo: 'comp' },
+  { name: 'Irish Open', tipo: 'comp' },
+  { name: 'Multi Nations', tipo: 'comp' },
+  { name: 'Estágio Sénior', tipo: 'estagio' },
+  { name: 'Estágio Júnior', tipo: 'estagio' },
+  { name: 'Meet Gijón', tipo: 'comp' },
+  { name: 'Mundiais Univ.', tipo: 'comp' },
+  { name: 'MN Barcelona', tipo: 'comp' },
+  { name: 'MN Canet', tipo: 'comp' },
+  { name: 'CI Angola', tipo: 'comp' },
+  { name: 'Estágio Juvenis', tipo: 'estagio' },
+  { name: 'EUR SUB 23', tipo: 'comp' },
+  { name: 'Estágio Tenerife', tipo: 'estagio' },
+  { name: 'EUR JUN', tipo: 'comp' },
+  { name: 'FOJE', tipo: 'comp' },
+  { name: 'Estágio Macau', tipo: 'estagio' },
+  { name: 'Mundial Singapura', tipo: 'comp' },
+  { name: 'Mundial Júnior', tipo: 'comp' },
+  { name: 'ENS', tipo: 'comp' },
+  { name: 'Europeu PC', tipo: 'comp' },
+  { name: 'Estágio Andorra', tipo: 'estagio' },
+];
+
+const acts2526 = [
+  { name: 'Estágio Jovens', tipo: 'estagio' },
+  { name: 'Estágio Juniores', tipo: 'estagio' },
+  { name: 'Estágio Sub-23', tipo: 'estagio' },
+  { name: 'Estágio Infantis', tipo: 'estagio' },
+  { name: 'Genebra (Jun)', tipo: 'comp' },
+  { name: 'Genebra (Sub-23)', tipo: 'comp' },
+  { name: 'Jamor', tipo: 'comp' },
+  { name: 'Estágio Sénior (E6)', tipo: 'estagio' },
+  { name: 'Estágio Sénior (E4)', tipo: 'estagio' },
+  { name: 'Estágio Sénior (E3)', tipo: 'estagio' },
+  { name: 'Estágio Sénior (E7)', tipo: 'estagio' },
+  { name: 'Estágio PA', tipo: 'estagio' },
+  { name: 'Gijón', tipo: 'comp' },
+  { name: 'Bratislava (Jov)', tipo: 'comp' },
+  { name: 'Bratislava (Jun)', tipo: 'comp' },
+  { name: 'Estágio Jovens', tipo: 'estagio' },
+  { name: 'Estágio Juniores', tipo: 'estagio' },
+  { name: 'Estágio Sub-23', tipo: 'estagio' },
+  { name: 'Estágio Sénior', tipo: 'estagio' },
+  { name: 'Estágio Infantis', tipo: 'estagio' },
+  { name: 'Belgrado', tipo: 'comp' },
+  { name: 'Munique', tipo: 'comp' },
+  { name: 'Barcelona (Sub-23)', tipo: 'comp' },
+  { name: 'Barcelona (Sénior)', tipo: 'comp' },
+  { name: 'Canet', tipo: 'comp' },
+  { name: 'Estágio Sénior', tipo: 'estagio' },
+  { name: 'Estágio Sénior', tipo: 'estagio' },
+  { name: 'Dakar', tipo: 'comp' },
+  { name: 'Paris', tipo: 'comp' },
+  { name: 'Taranto', tipo: 'comp' },
+  { name: 'Estágio Sénior', tipo: 'estagio' },
+  { name: 'Estágio Juniores', tipo: 'estagio' },
+  { name: 'Estágio Jovens', tipo: 'estagio' },
+  { name: 'Roma', tipo: 'comp' },
+];
+
+function renderPills(arr, id) {
+  document.getElementById(id).innerHTML = arr.map(a =>
+    `<span class="pill pill-${a.tipo}">${a.name}</span>`
+  ).join('');
+}
+
+renderPills(acts2425, 'pills2425');
+renderPills(acts2526, 'pills2526');
+</script>
+</body>
+</html>
